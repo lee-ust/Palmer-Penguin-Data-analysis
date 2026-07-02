@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  jupyter:
+    build: .
+    image: penguin-analysis
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./data:/home/jovyan/work/data:ro
+      - ./scripts:/home/jovyan/work/scripts
+      - ./output:/home/jovyan/work/output
+      - ./README.ipynb:/home/jovyan/work/README.ipynb
+    environment:
+      - JUPYTER_ENABLE_LAB=yes
+    command: start-notebook.sh --NotebookApp.token='' --NotebookApp.password='' --NotebookApp.default_url=/lab
+
+  batch:
+    build: .
+    image: penguin-analysis
+    volumes:
+      - ./data:/home/jovyan/work/data:ro
+      - ./scripts:/home/jovyan/work/scripts
+      - ./output:/home/jovyan/work/output
+    working_dir: /home/jovyan/work
+    command: >
+      bash -c "
+        echo '🚀 Starting Palmer Penguins Analysis...' &&
+        echo '' &&
+        echo '📊 Running Python analysis...' &&
+        jupyter nbconvert --to script scripts/analysis.ipynb --output-dir /tmp/ 2>/dev/null || true &&
+        python /tmp/analysis.py 2>/dev/null || echo 'Python notebook not found, skipping...' &&
+        echo '' &&
+        echo '📈 Running R analysis...' &&
+        Rscript scripts/analysis.r &&
+        echo '' &&
+        echo '✅ Analysis complete! Results saved to output/ folder'
+      "
